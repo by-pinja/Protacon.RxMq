@@ -10,10 +10,6 @@ build_script:
 - ps: .\Build.ps1
 test: off
 artifacts:
-- path: .\Protacon.RxMq.Abstractions\artifacts\**\*.nupkg
-  name: NuGet
-- path: .\Protacon.RxMq.AzureServiceBus\artifacts\**\*.nupkg
-  name: NuGet
 - path: .\Protacon.RxMq.AzureServiceBusLegacy\artifacts\**\*.nupkg
   name: NuGet
 deploy:

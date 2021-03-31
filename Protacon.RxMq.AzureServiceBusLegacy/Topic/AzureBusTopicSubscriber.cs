@@ -16,12 +16,15 @@ namespace Protacon.RxMq.AzureServiceBusLegacy.Topic
     public class AzureBusTopicSubscriber: IMqTopicSubscriber
     {
         private readonly AzureTopicMqSettings _settings;
+        private readonly AzureTopicMqSettings _secondarySettings;
         private readonly Action<string> _logMessage;
         private readonly Action<string> _logError;
 
         private readonly ConcurrentDictionary<Type, IDisposable> _bindings = new ConcurrentDictionary<Type, IDisposable>();
         private readonly MessagingFactory _factory;
         private readonly NamespaceManager _namespaceManager;
+        private readonly MessagingFactory _secondaryFactory;
+        private readonly NamespaceManager _secondaryNamespaceManager;
 
         private readonly BlockingCollection<IBinding> _errorActions = new BlockingCollection<IBinding>(1);
         private readonly CancellationTokenSource _source;
@@ -29,13 +32,16 @@ namespace Protacon.RxMq.AzureServiceBusLegacy.Topic
         private class Binding<T> : IDisposable, IBinding where T : new()
         {
             private readonly SubscriptionClient _receiver;
+            private readonly SubscriptionClient _secondaryReceiver;
             private readonly OnMessageOptions _options;
 
             private readonly BlockingCollection<IBinding> _errorActions;
             private readonly Action<string> _logError;
             private readonly IList<string> _excludeTopicsFromLogging;
 
-            internal Binding(MessagingFactory messagingFactory, NamespaceManager namespaceManager, AzureTopicMqSettings settings, BlockingCollection<IBinding> errorActions, Action<string> logMessage, Action<string> logError)
+            internal Binding(MessagingFactory messagingFactory, NamespaceManager namespaceManager, AzureTopicMqSettings settings,
+                MessagingFactory secondaryMessagingFactory, NamespaceManager secondaryNamespaceManager, AzureTopicMqSettings secondarySettings, 
+                BlockingCollection<IBinding> errorActions, Action<string> logMessage, Action<string> logError)
             {
                 _errorActions = errorActions;
                 _logError = logError;
@@ -79,6 +85,43 @@ namespace Protacon.RxMq.AzureServiceBusLegacy.Topic
                         logError($"Message {topicPath}': {message} -> consumer error: {ex}");
                     }
                 }, _options);
+
+                if (secondaryMessagingFactory != null && secondaryNamespaceManager != null && secondarySettings != null)
+                {
+                    var secondaryTopicPath = secondarySettings.TopicNameBuilder(typeof(T));
+                    var secondarySubscriptionName = $"{secondaryTopicPath}.{secondarySettings.TopicSubscriberId}";
+                    MakeSureTopicExists(secondaryNamespaceManager, secondarySettings, secondaryTopicPath);
+                    MakeSureSubscriptionExists(secondaryNamespaceManager, secondarySettings, secondaryTopicPath, secondarySubscriptionName);
+                    _secondaryReceiver = secondaryMessagingFactory.CreateSubscriptionClient(secondaryTopicPath, secondarySubscriptionName);
+                    _secondaryReceiver.RemoveRule("$default");
+                    secondarySettings.AzureSubscriptionRules
+                        .ToList()
+                        .ForEach(x => _secondaryReceiver.AddRule(x.Key, x.Value));
+
+                    _secondaryReceiver.OnMessage(message =>
+                    {
+                        try
+                        {
+                            var bodyStream = message.GetBody<Stream>();
+
+                            using (var reader = new StreamReader(bodyStream))
+                            {
+                                var body = reader.ReadToEnd();
+
+                                if (!_excludeTopicsFromLogging.Contains(secondaryTopicPath))
+                                {
+                                    logMessage($"Received '{topicPath}': {body}");
+                                }
+
+                                Subject.OnNext(JObject.Parse(body)["data"].ToObject<T>());
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logError($"Message {topicPath}': {message} -> consumer error: {ex}");
+                        }
+                    }, _options);
+                }                
             }
 
             private static void MakeSureSubscriptionExists(NamespaceManager namespaceManager, AzureTopicMqSettings settings,
@@ -110,13 +153,22 @@ namespace Protacon.RxMq.AzureServiceBusLegacy.Topic
                 }
             }
 
-            public void ReCreate(AzureTopicMqSettings settings, NamespaceManager namespaceManager)
+            public void ReCreate(AzureTopicMqSettings settings, NamespaceManager namespaceManager, AzureTopicMqSettings secondarySettings, NamespaceManager secondaryNamespaceManager)
             {
                 var topicPath = settings.TopicNameBuilder(typeof(T));
                 var subscriptionName = $"{topicPath}.{settings.TopicSubscriberId}";
                 MakeSureTopicExists(namespaceManager, settings, topicPath);
                 MakeSureSubscriptionExists(namespaceManager, settings, topicPath, subscriptionName);
                 UpdateRules(settings);
+
+                if (secondarySettings != null && secondaryNamespaceManager != null)
+                {
+                    var secondaryTopicPath = secondarySettings.TopicNameBuilder(typeof(T));
+                    var secondarySubscriptionName = $"{secondaryTopicPath}.{secondarySettings.TopicSubscriberId}";
+                    MakeSureTopicExists(secondaryNamespaceManager, secondarySettings, secondaryTopicPath);
+                    MakeSureSubscriptionExists(secondaryNamespaceManager, secondarySettings, secondaryTopicPath, secondarySubscriptionName);
+                    UpdateRules(secondarySettings);
+                }                
             }
 
             private void UpdateRules(AzureTopicMqSettings settings)
@@ -138,7 +190,7 @@ namespace Protacon.RxMq.AzureServiceBusLegacy.Topic
             }
         }
 
-        public AzureBusTopicSubscriber(AzureTopicMqSettings settings, Action<string> logMessage, Action<string> logError)
+        public AzureBusTopicSubscriber(AzureTopicMqSettings settings, Action<string> logMessage, Action<string> logError, AzureTopicMqSettings secondarySettings = null)
         {
             _settings = settings;
             _logMessage = logMessage;
@@ -147,6 +199,14 @@ namespace Protacon.RxMq.AzureServiceBusLegacy.Topic
 
             _namespaceManager =
                 NamespaceManager.CreateFromConnectionString(settings.ConnectionString);
+
+            if (secondarySettings != null)
+            {
+                _secondarySettings = secondarySettings;
+                _secondaryFactory = MessagingFactory.CreateFromConnectionString(settings.ConnectionString);
+                _secondaryNamespaceManager =
+                    NamespaceManager.CreateFromConnectionString(secondarySettings.ConnectionString);
+            }
 
             _source = new CancellationTokenSource();
             Task.Factory.StartNew(() =>
@@ -158,7 +218,7 @@ namespace Protacon.RxMq.AzureServiceBusLegacy.Topic
                         var action = _errorActions.Take(_source.Token);
                         try
                         {
-                            action.ReCreate(_settings, _namespaceManager);
+                            action.ReCreate(_settings, _namespaceManager, _secondarySettings, _secondaryNamespaceManager);
                         }
                         catch (Exception exception)
                         {
@@ -181,7 +241,7 @@ namespace Protacon.RxMq.AzureServiceBusLegacy.Topic
         {
             if (!_bindings.ContainsKey(typeof(T)))
             {
-                _bindings.TryAdd(typeof(T), new Binding<T>(_factory, _namespaceManager, _settings, _errorActions, _logMessage, _logError));
+                _bindings.TryAdd(typeof(T), new Binding<T>(_factory, _namespaceManager, _settings, _secondaryFactory, _secondaryNamespaceManager, _secondarySettings, _errorActions, _logMessage, _logError));
             }
 
             return ((Binding<T>)_bindings[typeof(T)]).Subject;
@@ -197,7 +257,7 @@ namespace Protacon.RxMq.AzureServiceBusLegacy.Topic
 
         private interface IBinding
         {
-            void ReCreate(AzureTopicMqSettings settings, NamespaceManager namespaceManager);
+            void ReCreate(AzureTopicMqSettings settings, NamespaceManager namespaceManager, AzureTopicMqSettings secondarySettings, NamespaceManager secondaryNamespaceManager);
         }
     }
 }

@@ -21,6 +21,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
             public string ConnectionString { get; set; }
             public string SubscriptionName { get; set; }
             public int PrefetchCount { get; set; }
+            public ReceiveMode ReceiveMode { get; set; }
         }
         
         private readonly AzureBusTopicSettings _settings;
@@ -39,7 +40,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                 AzureBusTopicManagement topicManagement, BlockingCollection<IBinding> errorActions)
             {
                 _excludeTopicsFromLogging = new LoggingConfiguration().ExcludeTopicsFromLogging();
-                var (topicName, prefetchCount) = settings.TopicConfigBuilder(typeof(T));
+                var (topicName, prefetchCount, receiveModeCode) = settings.TopicConfigBuilder(typeof(T));
                 var subscriptionName = $"{topicName}.{settings.TopicSubscriberId}";
 
                 topicManagement.CreateSubscriptionIfMissing(topicName, subscriptionName, typeof(T));
@@ -49,7 +50,8 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                     ConnectionString = settings.ConnectionString,
                     TopicName = topicName,
                     SubscriptionName = subscriptionName,
-                    PrefetchCount = prefetchCount ?? settings.DefaultPrefetchCount
+                    PrefetchCount = prefetchCount ?? settings.DefaultPrefetchCount,
+                    ReceiveMode = ParseReceiveMode(receiveModeCode, settings.DefaultReceiveMode, logging)
                 });
                 
                 UpdateRules(subscriptionClient, settings);
@@ -83,12 +85,13 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                         }
                     }));
 
-                logging.LogInformation("Created SubscriptionClient for {topicName} with prefetchCount {prefetchCount}", topicName, subscriptionClient.PrefetchCount);
+                logging.LogInformation("Created SubscriptionClient for {topicName} with prefetchCount {prefetchCount} and receiveMode: {receiveMode}", 
+                    topicName, subscriptionClient.PrefetchCount, subscriptionClient.ReceiveMode);
             }
 
             public void ReCreate(AzureBusTopicSettings settings, AzureBusTopicManagement topicManagement)
             {
-                var (topicName, prefetchCount) = settings.TopicConfigBuilder(typeof(T));
+                var (topicName, prefetchCount, receiveModeCode) = settings.TopicConfigBuilder(typeof(T));
                 var subscriptionName = $"{topicName}.{settings.TopicSubscriberId}";
 
                 topicManagement.CreateSubscriptionIfMissing(topicName, subscriptionName, typeof(T));
@@ -98,7 +101,8 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                     ConnectionString = settings.ConnectionString,
                     TopicName = topicName,
                     SubscriptionName = subscriptionName,
-                    PrefetchCount = prefetchCount ?? settings.DefaultPrefetchCount
+                    PrefetchCount = prefetchCount ?? settings.DefaultPrefetchCount,
+                    ReceiveMode = ParseReceiveMode(receiveModeCode, settings.DefaultReceiveMode, null)
                 });
                 
                 UpdateRules(subscriptionClient, settings);
@@ -128,10 +132,27 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
 
             private static SubscriptionClient CreateClient(SubscriptionClientOptions options)
             {
-                var client = new SubscriptionClient(options.ConnectionString, options.TopicName, options.SubscriptionName);
+                var client = new SubscriptionClient(options.ConnectionString, options.TopicName, options.SubscriptionName, options.ReceiveMode);
                 client.PrefetchCount = options.PrefetchCount;
 
                 return client;
+            }
+            
+            private static ReceiveMode ParseReceiveMode(string topicReceiveModeCode, string defaultReceiveModeCode, ILogger<AzureTopicSubscriber> logging = null)
+            {
+                if (Enum.TryParse<ReceiveMode>(topicReceiveModeCode, out var topicMode))
+                {
+                    return topicMode;
+                }
+                logging?.LogDebug("Invalid receive mode {topicReceiveModeCode} provided from topic. Trying settings.", topicReceiveModeCode);
+                
+                if (Enum.TryParse<ReceiveMode>(defaultReceiveModeCode, out var defaultMode))
+                {
+                    return defaultMode;
+                }
+                logging?.LogWarning("Invalid receive mode {defaultReceiveModeCode} provided from settings. Defaulting to 'PeekLock'", defaultReceiveModeCode);
+                
+                return ReceiveMode.PeekLock;
             }
 
             public ReplaySubject<T> Subject { get; } = new ReplaySubject<T>(TimeSpan.FromSeconds(30));

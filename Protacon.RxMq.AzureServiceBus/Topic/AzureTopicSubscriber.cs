@@ -39,7 +39,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                 AzureBusTopicManagement topicManagement, BlockingCollection<IBinding> errorActions)
             {
                 _excludeTopicsFromLogging = new LoggingConfiguration().ExcludeTopicsFromLogging();
-                var topicName = settings.TopicNameBuilder(typeof(T));
+                var (topicName, prefetchCount) = settings.TopicConfigBuilder(typeof(T));
                 var subscriptionName = $"{topicName}.{settings.TopicSubscriberId}";
 
                 topicManagement.CreateSubscriptionIfMissing(topicName, subscriptionName, typeof(T));
@@ -49,7 +49,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                     ConnectionString = settings.ConnectionString,
                     TopicName = topicName,
                     SubscriptionName = subscriptionName,
-                    PrefetchCount = settings.DefaultPrefetchCount
+                    PrefetchCount = prefetchCount ?? settings.DefaultPrefetchCount
                 });
                 
                 UpdateRules(subscriptionClient, settings);
@@ -88,7 +88,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
 
             public void ReCreate(AzureBusTopicSettings settings, AzureBusTopicManagement topicManagement)
             {
-                var topicName = settings.TopicNameBuilder(typeof(T));
+                var (topicName, prefetchCount) = settings.TopicConfigBuilder(typeof(T));
                 var subscriptionName = $"{topicName}.{settings.TopicSubscriberId}";
 
                 topicManagement.CreateSubscriptionIfMissing(topicName, subscriptionName, typeof(T));
@@ -98,7 +98,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                     ConnectionString = settings.ConnectionString,
                     TopicName = topicName,
                     SubscriptionName = subscriptionName,
-                    PrefetchCount = settings.DefaultPrefetchCount
+                    PrefetchCount = prefetchCount ?? settings.DefaultPrefetchCount
                 });
                 
                 UpdateRules(subscriptionClient, settings);

@@ -17,7 +17,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
     public class AzureTopicSubscriber : IMqTopicSubscriber
     {
         private readonly AzureBusTopicSettings _settings;
-        private readonly AzureBusTopicManagement _queueManagement;
+        private readonly AzureBusTopicManagement _topicManagement;
         private readonly ILogger<AzureTopicSubscriber> _logging;
         private readonly ConcurrentDictionary<Type, IDisposable> _bindings = new ConcurrentDictionary<Type, IDisposable>();
 
@@ -29,13 +29,13 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
             private readonly IList<string> _excludeTopicsFromLogging;
 
             internal Binding(AzureBusTopicSettings settings, ILogger<AzureTopicSubscriber> logging,
-                AzureBusTopicManagement queueManagement, BlockingCollection<IBinding> errorActions)
+                AzureBusTopicManagement topicManagement, BlockingCollection<IBinding> errorActions)
             {
                 _excludeTopicsFromLogging = new LoggingConfiguration().ExcludeTopicsFromLogging();
                 var topicName = settings.TopicNameBuilder(typeof(T));
                 var subscriptionName = $"{topicName}.{settings.TopicSubscriberId}";
 
-                queueManagement.CreateSubscriptionIfMissing(topicName, subscriptionName, typeof(T));
+                topicManagement.CreateSubscriptionIfMissing(topicName, subscriptionName, typeof(T));
 
                 var subscriptionClient = new SubscriptionClient(settings.ConnectionString, topicName, subscriptionName);
                 UpdateRules(subscriptionClient, settings);
@@ -70,12 +70,12 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                     }));
             }
 
-            public void ReCreate(AzureBusTopicSettings settings, AzureBusTopicManagement queueManagement)
+            public void ReCreate(AzureBusTopicSettings settings, AzureBusTopicManagement topicManagement)
             {
                 var topicName = settings.TopicNameBuilder(typeof(T));
                 var subscriptionName = $"{topicName}.{settings.TopicSubscriberId}";
 
-                queueManagement.CreateSubscriptionIfMissing(topicName, subscriptionName, typeof(T));
+                topicManagement.CreateSubscriptionIfMissing(topicName, subscriptionName, typeof(T));
 
                 var subscriptionClient = new SubscriptionClient(settings.ConnectionString, topicName, subscriptionName);
                 UpdateRules(subscriptionClient, settings);
@@ -111,10 +111,10 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
             }
         }
 
-        public AzureTopicSubscriber(IOptions<AzureBusTopicSettings> settings, AzureBusTopicManagement queueManagement, ILogger<AzureTopicSubscriber> logging)
+        public AzureTopicSubscriber(IOptions<AzureBusTopicSettings> settings, AzureBusTopicManagement topicManagement, ILogger<AzureTopicSubscriber> logging)
         {
             _settings = settings.Value;
-            _queueManagement = queueManagement;
+            _topicManagement = topicManagement;
             _logging = logging;
 
             _source = new CancellationTokenSource();
@@ -127,7 +127,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                         var action = _errorActions.Take(_source.Token);
                         try
                         {
-                            action.ReCreate(_settings, _queueManagement);
+                            action.ReCreate(_settings, _topicManagement);
                         }
                         catch (Exception exception)
                         {
@@ -150,7 +150,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
         {
             if (!_bindings.ContainsKey(typeof(T)))
             {
-                _bindings.TryAdd(typeof(T), new Binding<T>(_settings, _logging, _queueManagement, _errorActions));
+                _bindings.TryAdd(typeof(T), new Binding<T>(_settings, _logging, _topicManagement, _errorActions));
             }
 
             return ((Binding<T>)_bindings[typeof(T)]).Subject;
@@ -166,7 +166,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
 
         private interface IBinding
         {
-            void ReCreate(AzureBusTopicSettings settings, AzureBusTopicManagement queueManagement);
+            void ReCreate(AzureBusTopicSettings settings, AzureBusTopicManagement topicManagement);
         }
     }
 }

@@ -16,6 +16,13 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
 {
     public class AzureTopicSubscriber : IMqTopicSubscriber
     {
+        internal class SubscriptionClientOptions {
+            public string TopicName { get; set; }
+            public string ConnectionString { get; set; }
+            public string SubscriptionName { get; set; }
+            public int PrefetchCount { get; set; }
+        }
+        
         private readonly AzureBusTopicSettings _settings;
         private readonly AzureBusTopicManagement _topicManagement;
         private readonly ILogger<AzureTopicSubscriber> _logging;
@@ -23,7 +30,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
 
         private readonly BlockingCollection<IBinding> _errorActions = new BlockingCollection<IBinding>(1);
         private readonly CancellationTokenSource _source;
-
+        
         private class Binding<T> : IDisposable, IBinding where T : new()
         {
             private readonly IList<string> _excludeTopicsFromLogging;
@@ -37,7 +44,14 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
 
                 topicManagement.CreateSubscriptionIfMissing(topicName, subscriptionName, typeof(T));
 
-                var subscriptionClient = new SubscriptionClient(settings.ConnectionString, topicName, subscriptionName);
+                var subscriptionClient = CreateClient(new SubscriptionClientOptions
+                {
+                    ConnectionString = settings.ConnectionString,
+                    TopicName = topicName,
+                    SubscriptionName = subscriptionName,
+                    PrefetchCount = settings.DefaultPrefetchCount
+                });
+                
                 UpdateRules(subscriptionClient, settings);
 
                 subscriptionClient.RegisterMessageHandler(
@@ -77,7 +91,14 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
 
                 topicManagement.CreateSubscriptionIfMissing(topicName, subscriptionName, typeof(T));
 
-                var subscriptionClient = new SubscriptionClient(settings.ConnectionString, topicName, subscriptionName);
+                var subscriptionClient = CreateClient(new SubscriptionClientOptions
+                {
+                    ConnectionString = settings.ConnectionString,
+                    TopicName = topicName,
+                    SubscriptionName = subscriptionName,
+                    PrefetchCount = settings.DefaultPrefetchCount
+                });
+                
                 UpdateRules(subscriptionClient, settings);
             }
 
@@ -101,6 +122,14 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                     throw new InvalidOperationException("Library expects data wrapped as { data: { ... } }");
 
                 return parsed["data"].ToObject<T>();
+            }
+
+            private static SubscriptionClient CreateClient(SubscriptionClientOptions options)
+            {
+                var client = new SubscriptionClient(options.ConnectionString, options.TopicName, options.SubscriptionName);
+                client.PrefetchCount = options.PrefetchCount;
+
+                return client;
             }
 
             public ReplaySubject<T> Subject { get; } = new ReplaySubject<T>(TimeSpan.FromSeconds(30));

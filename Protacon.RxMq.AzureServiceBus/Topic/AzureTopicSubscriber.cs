@@ -82,6 +82,8 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                             errorActions.Add(this);
                         }
                     }));
+
+                logging.LogInformation("Created SubscriptionClient for {topicName} with prefetchCount {prefetchCount}", topicName, subscriptionClient.PrefetchCount);
             }
 
             public void ReCreate(AzureBusTopicSettings settings, AzureBusTopicManagement topicManagement)

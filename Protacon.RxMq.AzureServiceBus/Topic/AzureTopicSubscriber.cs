@@ -45,13 +45,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                     {
                         try
                         {
-                            DateTimeOffset arrival;
-
-                            if (settings.AddArrival)
-                            {
-                                arrival = DateTimeOffset.UtcNow;
-                            }
-
+                            DateTimeOffset arrival = DateTimeOffset.UtcNow;
                             var body = Encoding.UTF8.GetString(message.Body);
 
                             if (!_excludeTopicsFromLogging.Contains(topicName))
@@ -59,7 +53,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                                 logging.LogInformation("Received '{subscription}': {body} with Azure MessageId: '{messageId}'", subscriptionName, body, message.MessageId);
                             }
 
-                            var asObject = AsObject(body, arrival);
+                            var asObject = AsObject(body, arrival, settings.AddArrival);
 
                             Subject.OnNext(asObject);
                         }
@@ -100,14 +94,14 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                     .ForEach(x => subscriptionClient.AddRuleAsync(x.Key, x.Value).Wait());
             }
 
-            private static T AsObject(string body, DateTimeOffset? arrival = null)
+            private static T AsObject(string body, DateTimeOffset? arrival = null, bool addArrival = false)
             {
                 var parsed = JObject.Parse(body);
 
                 if (parsed["data"] == null)
                     throw new InvalidOperationException("Library expects data wrapped as { data: { ... } }");
 
-                if (arrival != null) {
+                if (addArrival) {
                     parsed["data"]["arrival"] = arrival;
                 }
 

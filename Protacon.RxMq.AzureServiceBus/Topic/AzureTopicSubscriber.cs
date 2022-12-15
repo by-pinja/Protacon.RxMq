@@ -45,7 +45,13 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                     {
                         try
                         {
-                            var arrival = DateTimeOffset.UtcNow;
+                            DateTimeOffset arrival;
+
+                            if (settings.AddArrival)
+                            {
+                                arrival = DateTimeOffset.UtcNow;
+                            }
+
                             var body = Encoding.UTF8.GetString(message.Body);
 
                             if (!_excludeTopicsFromLogging.Contains(topicName))

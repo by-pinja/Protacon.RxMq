@@ -8,6 +8,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
     public class AzureBusTopicSettings : AzureMqSettingsBase
     {
         public string TopicSubscriberId { get; set; } = Environment.MachineName;
+        public bool AddArrival { get; set; }
 
         public Func<Type, string> TopicNameBuilder { get; set; } = type =>
         {

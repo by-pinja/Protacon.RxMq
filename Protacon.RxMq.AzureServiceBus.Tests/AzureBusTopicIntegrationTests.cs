@@ -116,5 +116,18 @@ namespace Protacon.RxMq.AzureServiceBus.Tests
                 .Timeout(TimeSpan.FromSeconds(60))
                 .FirstAsync();
         }
+
+        [Fact]
+        public async void WhenTopicContainsValue_ObjectSettingsAreUsed()
+        {
+            var settings = TestSettings.TopicSettingsOptions();
+            var subscriber = new AzureTopicSubscriber(settings, new AzureBusTopicManagement(settings), Substitute.For<ILogger<AzureTopicSubscriber>>());
+            var clientWithoutMode = subscriber.Client<TestMessageForTopic>();
+            var clientWithMode = subscriber.Client<ConfigurableTestMessageForTopic>();
+            
+            Assert.Equal(ReceiveMode.PeekLock, clientWithoutMode.ReceiveMode);
+            Assert.Equal(0, clientWithoutMode.PrefetchCount);
+            Assert.Equal(100, clientWithMode.PrefetchCount);
+        }
     }
 }

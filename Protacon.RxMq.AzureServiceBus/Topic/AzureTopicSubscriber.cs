@@ -85,6 +85,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                         }
                     }));
 
+                Client = subscriptionClient;
                 logging.LogInformation("Created SubscriptionClient for {topicName} with prefetchCount {prefetchCount} and receiveMode: {receiveMode}", 
                     topicName, subscriptionClient.PrefetchCount, subscriptionClient.ReceiveMode);
             }
@@ -106,6 +107,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                 });
                 
                 UpdateRules(subscriptionClient, settings);
+                Client = subscriptionClient;
             }
 
             private void UpdateRules(SubscriptionClient subscriptionClient, AzureBusTopicSettings settings)
@@ -156,10 +158,12 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
             }
 
             public ReplaySubject<T> Subject { get; } = new ReplaySubject<T>(TimeSpan.FromSeconds(30));
+            public SubscriptionClient Client { get; set; }
 
             public void Dispose()
             {
                 Subject?.Dispose();
+                Client = null;
             }
         }
 
@@ -206,6 +210,16 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
             }
 
             return ((Binding<T>)_bindings[typeof(T)]).Subject;
+        }
+        
+        public SubscriptionClient Client<T>() where T : new()
+        {
+            if (!_bindings.ContainsKey(typeof(T)))
+            {
+                _bindings.TryAdd(typeof(T), new Binding<T>(_settings, _logging, _topicManagement, _errorActions));
+            }
+
+            return ((Binding<T>)_bindings[typeof(T)]).Client;
         }
 
         public void Dispose()

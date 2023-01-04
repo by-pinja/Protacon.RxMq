@@ -72,40 +72,4 @@ jobs:
       subscriptionId: '594dd722-b5c7-449c-91ae-e9ab9a54b660'
       action: 'DeleteRG'
       resourceGroupName: $(envName)
-
-- job: 'publish'
-  dependsOn: 'build'
-  condition: and(succeeded(), eq(variables.isTagBuild, true))
-  steps:
-  - pwsh: |
-        $tag = ($Env:BUILD_SOURCEBRANCH -Replace 'refs/tags/','')
-        Write-Host "##vso[task.setvariable variable=buildTag;]$($tag)"
-      
-  - task: PowerShell@2 
-    displayName: publish abstractions nuget packages
-    inputs:
-      targetType: 'inline'
-      script: |
-        dotnet pack $(Build.SourcesDirectory)\Protacon.RxMq.Abstractions\Protacon.RxMq.Abstractions.csproj -c Release -o $(Build.SourcesDirectory)\Protacon.RxMq.Abstractions\artifacts /p:Version=$(buildTag) 
-        cd  $(Build.SourcesDirectory)\Protacon.RxMq.Abstractions\artifacts   
-        dotnet nuget push Protacon.RxMq.Abstractions.$(buildTag).nupkg --api-key $(nugetApiKey) --source https://api.nuget.org/v3/index.json
-
-  - task: PowerShell@2 
-    displayName: publish AzureServiceBus nuget packages
-    inputs:
-      targetType: 'inline'
-      script: |
-        dotnet pack $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBus\Protacon.RxMq.AzureServiceBus.csproj -c Release -o $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBus\artifacts /p:Version=$(buildTag) 
-        cd  $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBus\artifacts   
-        dotnet nuget push Protacon.RxMq.AzureServiceBus.$(buildTag).nupkg --api-key $(nugetApiKey) --source https://api.nuget.org/v3/index.json  
-   
-  - task: PowerShell@2 
-    displayName: publish AzureServiceBusLegacy nuget packages
-    inputs:
-      targetType: 'inline'
-      script: |
-        dotnet pack $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBusLegacy\Protacon.RxMq.AzureServiceBusLegacy.csproj -c Release -o $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBusLegacy\artifacts /p:Version=$(buildTag) 
-        cd  $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBusLegacy\artifacts   
-        dotnet nuget push Protacon.RxMq.AzureServiceBusLegacy.$(buildTag).nupkg --api-key $(nugetApiKey) --source https://api.nuget.org/v3/index.json
-
     

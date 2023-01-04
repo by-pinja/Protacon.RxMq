@@ -10,5 +10,6 @@ namespace Protacon.RxMq.AzureServiceBus.Tests.Messages
         public string Something { get; set; }
         public string TenantId { get; set; }
         public string TopicName => "v1.testtopic";
+        public long? Arrival { get; set; }
     }
 }

@@ -29,6 +29,8 @@ namespace Protacon.RxMq.AzureServiceBus.Queue
                 queueManagement.CreateQueIfMissing(queueName, typeof(T));
 
                 var queueClient = new QueueClient(settings.ConnectionString, queueName);
+                queueClient.PrefetchCount = settings.DefaultPrefetchCount;
+                
                 _excludeQueuesFromLogging = new LoggingConfiguration().ExcludeQueuesFromLogging();
 
                 queueClient.RegisterMessageHandler(

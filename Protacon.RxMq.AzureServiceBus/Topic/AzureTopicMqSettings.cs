@@ -8,6 +8,8 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
     public class AzureBusTopicSettings : AzureMqSettingsBase
     {
         public string TopicSubscriberId { get; set; } = Environment.MachineName;
+        public int DefaultPrefetchCount { get; set; } = 0;
+        public string DefaultReceiveMode { get; set; } = "PeekLock";
 
         public Func<Type, string> TopicNameBuilder { get; set; } = type =>
         {
@@ -19,6 +21,23 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
             }
 
             throw new InvalidOperationException($"Default implementation of queue name builder expects used objects to extend '{nameof(ITopicItem)}'");
+        };
+
+        public Func<Type, Tuple<string, int?, string>> TopicConfigBuilder { get; set; } = type =>
+        {
+            var instance = Activator.CreateInstance(type);
+
+            if (instance is IConfigurableTopicItem cti)
+            {
+                return new Tuple<string, int?, string>(cti.TopicName, cti.PrefetchCount, cti.ReceiveMode);
+            }
+
+            if (instance is ITopicItem t)
+            {
+                return new Tuple<string, int?, string>(t.TopicName, null, "");
+            }
+
+            throw new InvalidOperationException($"Default implementation of queue name builder expects used objects to extend '{nameof(ITopicItem)}' or '{nameof(IConfigurableTopicItem)}'");
         };
 
         public Action<Microsoft.Azure.Management.ServiceBus.Fluent.Topic.Definition.IBlank, Type> AzureTopicBuilder { get; set; } = (create, messageType) =>

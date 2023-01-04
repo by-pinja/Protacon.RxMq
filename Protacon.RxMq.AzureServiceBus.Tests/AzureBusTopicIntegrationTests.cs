@@ -118,7 +118,7 @@ namespace Protacon.RxMq.AzureServiceBus.Tests
         }
 
         [Fact]
-        public async void WhenTopicContainsValue_ObjectSettingsAreUsed()
+        public void WhenTopicTypeContainsExtraSettings_SubscriptionClientUsesThoseSettings()
         {
             var settings = TestSettings.TopicSettingsOptions();
             var subscriber = new AzureTopicSubscriber(settings, new AzureBusTopicManagement(settings), Substitute.For<ILogger<AzureTopicSubscriber>>());
@@ -126,6 +126,7 @@ namespace Protacon.RxMq.AzureServiceBus.Tests
             var clientWithMode = subscriber.Client<ConfigurableTestMessageForTopic>();
             
             Assert.Equal(ReceiveMode.PeekLock, clientWithoutMode.ReceiveMode);
+            Assert.Equal(ReceiveMode.ReceiveAndDelete, clientWithMode.ReceiveMode);
             Assert.Equal(0, clientWithoutMode.PrefetchCount);
             Assert.Equal(100, clientWithMode.PrefetchCount);
         }

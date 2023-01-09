@@ -86,7 +86,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                     }));
 
                 Client = subscriptionClient;
-                logging.LogInformation("Created SubscriptionClient for {topicName} with prefetchCount {prefetchCount} and receiveMode: {receiveMode}", 
+                logging.LogInformation("Created SubscriptionClient for '{topicName}' with prefetchCount '{prefetchCount}' and receiveMode '{receiveMode}'", 
                     topicName, subscriptionClient.PrefetchCount, subscriptionClient.ReceiveMode);
             }
 

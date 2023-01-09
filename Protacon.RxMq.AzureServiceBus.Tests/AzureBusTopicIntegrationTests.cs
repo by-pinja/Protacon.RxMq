@@ -116,5 +116,56 @@ namespace Protacon.RxMq.AzureServiceBus.Tests
                 .Timeout(TimeSpan.FromSeconds(60))
                 .FirstAsync();
         }
+
+        [Fact]
+        public async void WhenSettingFalse_MessagesDoesNotContainArrivalTimeStamp()
+        {
+            var settings = TestSettings.TopicSettingsOptions();
+            settings.Value.AddArrival = false;
+            
+            var subscriber = new AzureTopicSubscriber(settings, new AzureBusTopicManagement(settings), Substitute.For<ILogger<AzureTopicSubscriber>>());
+            var publisher = new AzureTopicPublisher(settings, new AzureBusTopicManagement(settings), Substitute.For<ILogger<AzureTopicPublisher>>());
+
+            var id = Guid.NewGuid();
+            var listener = subscriber.Messages<TestMessageForTopic>();
+
+            await publisher.SendAsync(new TestMessageForTopic
+            {
+                ExampleId = id
+            });
+
+            var receivedMessage = await listener
+                .Where(x => x.ExampleId == id)
+                .Timeout(TimeSpan.FromSeconds(10))
+                .FirstAsync();
+            
+            Assert.Null(receivedMessage.RxMqArrival);
+        }
+        [Fact]
+        public async void WhenSettingTrue_MessagesContainArrivalTimeStamp()
+        {
+            var settings = TestSettings.TopicSettingsOptions();
+            settings.Value.AddArrival = true;
+            
+            var subscriber = new AzureTopicSubscriber(settings, new AzureBusTopicManagement(settings), Substitute.For<ILogger<AzureTopicSubscriber>>());
+            var publisher = new AzureTopicPublisher(settings, new AzureBusTopicManagement(settings), Substitute.For<ILogger<AzureTopicPublisher>>());
+
+            var id = Guid.NewGuid();
+            var listener = subscriber.Messages<TestMessageForTopic>();
+
+            await publisher.SendAsync(new TestMessageForTopic
+            {
+                ExampleId = id
+            });
+
+            var receivedMessage = await listener
+                .Where(x => x.ExampleId == id)
+                .Timeout(TimeSpan.FromSeconds(10))
+                .FirstAsync();
+            
+            var yesterday = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
+            Assert.NotNull(receivedMessage.RxMqArrival);
+            Assert.True(receivedMessage.RxMqArrival > yesterday);
+        }
     }
 }

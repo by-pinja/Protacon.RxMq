@@ -118,11 +118,25 @@ namespace Protacon.RxMq.AzureServiceBus.Tests
         }
 
         [Fact]
+        public void WhenTopicTypeContainsExtraSettings_SubscriptionClientUsesThoseSettings()
+        {
+            var settings = TestSettings.TopicSettingsOptions();
+            var subscriber = new AzureTopicSubscriber(settings, new AzureBusTopicManagement(settings), Substitute.For<ILogger<AzureTopicSubscriber>>());
+            var clientWithoutMode = subscriber.Client<TestMessageForTopic>();
+            var clientWithMode = subscriber.Client<ConfigurableTestMessageForTopic>();
+
+            Assert.Equal(ReceiveMode.PeekLock, clientWithoutMode.ReceiveMode);
+            Assert.Equal(ReceiveMode.ReceiveAndDelete, clientWithMode.ReceiveMode);
+            Assert.Equal(0, clientWithoutMode.PrefetchCount);
+            Assert.Equal(100, clientWithMode.PrefetchCount);
+        }
+
+        [Fact]
         public async void WhenSettingFalse_MessagesDoesNotContainArrivalTimeStamp()
         {
             var settings = TestSettings.TopicSettingsOptions();
             settings.Value.AddArrival = false;
-            
+
             var subscriber = new AzureTopicSubscriber(settings, new AzureBusTopicManagement(settings), Substitute.For<ILogger<AzureTopicSubscriber>>());
             var publisher = new AzureTopicPublisher(settings, new AzureBusTopicManagement(settings), Substitute.For<ILogger<AzureTopicPublisher>>());
 
@@ -138,15 +152,16 @@ namespace Protacon.RxMq.AzureServiceBus.Tests
                 .Where(x => x.ExampleId == id)
                 .Timeout(TimeSpan.FromSeconds(10))
                 .FirstAsync();
-            
+
             Assert.Null(receivedMessage.RxMqArrival);
         }
+
         [Fact]
         public async void WhenSettingTrue_MessagesContainArrivalTimeStamp()
         {
             var settings = TestSettings.TopicSettingsOptions();
             settings.Value.AddArrival = true;
-            
+
             var subscriber = new AzureTopicSubscriber(settings, new AzureBusTopicManagement(settings), Substitute.For<ILogger<AzureTopicSubscriber>>());
             var publisher = new AzureTopicPublisher(settings, new AzureBusTopicManagement(settings), Substitute.For<ILogger<AzureTopicPublisher>>());
 
@@ -162,7 +177,7 @@ namespace Protacon.RxMq.AzureServiceBus.Tests
                 .Where(x => x.ExampleId == id)
                 .Timeout(TimeSpan.FromSeconds(10))
                 .FirstAsync();
-            
+
             var yesterday = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
             Assert.NotNull(receivedMessage.RxMqArrival);
             Assert.True(receivedMessage.RxMqArrival > yesterday);

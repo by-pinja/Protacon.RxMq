@@ -5,6 +5,7 @@ namespace Protacon.RxMq.AzureServiceBus.Queue
 {
     public class AzureBusQueueSettings: AzureMqSettingsBase
     {
+        public int DefaultPrefetchCount { get; set; } = 0;
         public Func<Type, string> QueueNameBuilderForSubscriber { get; set; } = type =>
         {
             var instance = Activator.CreateInstance(type);

@@ -4,4 +4,10 @@
     {
         string TopicName { get; }
     }
+
+    public interface IConfigurableTopicItem : ITopicItem
+    {
+        int PrefetchCount { get; }
+        string ReceiveMode { get; }
+    }
 }

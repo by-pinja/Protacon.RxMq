@@ -139,7 +139,7 @@ namespace Protacon.RxMq.AzureServiceBus.Tests
                 .Timeout(TimeSpan.FromSeconds(10))
                 .FirstAsync();
             
-            Assert.Null(receivedMessage.Arrival);
+            Assert.Null(receivedMessage.RxMqArrival);
         }
         [Fact]
         public async void WhenSettingTrue_MessagesContainArrivalTimeStamp()
@@ -163,7 +163,9 @@ namespace Protacon.RxMq.AzureServiceBus.Tests
                 .Timeout(TimeSpan.FromSeconds(10))
                 .FirstAsync();
             
-            Assert.NotNull(receivedMessage.Arrival);
+            var yesterday = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
+            Assert.NotNull(receivedMessage.RxMqArrival);
+            Assert.True(receivedMessage.RxMqArrival > yesterday);
         }
     }
 }

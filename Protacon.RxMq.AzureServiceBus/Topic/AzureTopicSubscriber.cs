@@ -102,7 +102,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                     throw new InvalidOperationException("Library expects data wrapped as { data: { ... } }");
 
                 if (addArrival) {
-                    parsed["data"]["arrival"] = arrival;
+                    parsed["data"]["rxmqarrival"] = arrival;
                 }
 
                 return parsed["data"].ToObject<T>();

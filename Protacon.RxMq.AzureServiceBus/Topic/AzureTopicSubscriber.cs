@@ -146,7 +146,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                 {
                     return topicMode;
                 }
-                logging?.LogDebug("Invalid receive mode {topicReceiveModeCode} provided from topic. Trying settings.", topicReceiveModeCode);
+                logging?.LogDebug("Invalid receive mode '{topicReceiveModeCode}' provided from topic. Trying settings.", topicReceiveModeCode);
                 
                 if (Enum.TryParse<ReceiveMode>(defaultReceiveModeCode, out var defaultMode))
                 {

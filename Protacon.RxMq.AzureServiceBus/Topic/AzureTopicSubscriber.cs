@@ -152,7 +152,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                 {
                     return defaultMode;
                 }
-                logging?.LogWarning("Invalid receive mode {defaultReceiveModeCode} provided from settings. Defaulting to 'PeekLock'", defaultReceiveModeCode);
+                logging?.LogWarning("Invalid receive mode '{defaultReceiveModeCode}' provided from settings. Defaulting to 'PeekLock'", defaultReceiveModeCode);
                 
                 return ReceiveMode.PeekLock;
             }

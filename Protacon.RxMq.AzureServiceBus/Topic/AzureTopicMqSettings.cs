@@ -20,7 +20,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                 return t.TopicName;
             }
 
-            throw new InvalidOperationException($"Default implementation of queue name builder expects used objects to extend '{nameof(ITopicItem)}'");
+            throw new InvalidOperationException($"Default implementation of topic name builder expects used objects to extend '{nameof(ITopicItem)}'");
         };
 
         public Func<Type, Tuple<string, int?, string>> TopicConfigBuilder { get; set; } = type =>
@@ -37,7 +37,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
                 return new Tuple<string, int?, string>(t.TopicName, null, "");
             }
 
-            throw new InvalidOperationException($"Default implementation of queue name builder expects used objects to extend '{nameof(ITopicItem)}' or '{nameof(IConfigurableTopicItem)}'");
+            throw new InvalidOperationException($"Default implementation of topic configuration builder expects used objects to extend '{nameof(ITopicItem)}' or '{nameof(IConfigurableTopicItem)}'");
         };
 
         public Action<Microsoft.Azure.Management.ServiceBus.Fluent.Topic.Definition.IBlank, Type> AzureTopicBuilder { get; set; } = (create, messageType) =>

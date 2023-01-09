@@ -10,6 +10,7 @@ namespace Protacon.RxMq.AzureServiceBus.Topic
         public string TopicSubscriberId { get; set; } = Environment.MachineName;
         public int DefaultPrefetchCount { get; set; } = 0;
         public string DefaultReceiveMode { get; set; } = "PeekLock";
+        public bool AddArrival { get; set; }
 
         public Func<Type, string> TopicNameBuilder { get; set; } = type =>
         {

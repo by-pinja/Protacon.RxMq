@@ -27,8 +27,6 @@ $output = @{
 
 $filename = "client-secrets.json"
 $projectLocation = "Protacon.RxMq.AzureServiceBus.Tests"
-$legacyProjectLocation = "Protacon.RxMq.AzureServiceBusLegacy.Tests"
 $output | ConvertTo-Json -depth 100 | Out-File "$projectLocation\$filename"
-Copy-Item "$projectLocation\$filename" -Destination $legacyProjectLocation
 
-Write-Host "Write file '$filename' to '$projectLocation', '$legacyProjectLocation'"
+Write-Host "Write file '$filename' to '$projectLocation'"

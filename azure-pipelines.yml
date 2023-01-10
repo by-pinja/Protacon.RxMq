@@ -98,14 +98,3 @@ jobs:
         dotnet pack $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBus\Protacon.RxMq.AzureServiceBus.csproj -c Release -o $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBus\artifacts /p:Version=$(buildTag) 
         cd  $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBus\artifacts   
         dotnet nuget push Protacon.RxMq.AzureServiceBus.$(buildTag).nupkg --api-key $(nugetApiKey) --source https://api.nuget.org/v3/index.json  
-   
-  - task: PowerShell@2 
-    displayName: publish AzureServiceBusLegacy nuget packages
-    inputs:
-      targetType: 'inline'
-      script: |
-        dotnet pack $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBusLegacy\Protacon.RxMq.AzureServiceBusLegacy.csproj -c Release -o $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBusLegacy\artifacts /p:Version=$(buildTag) 
-        cd  $(Build.SourcesDirectory)\Protacon.RxMq.AzureServiceBusLegacy\artifacts   
-        dotnet nuget push Protacon.RxMq.AzureServiceBusLegacy.$(buildTag).nupkg --api-key $(nugetApiKey) --source https://api.nuget.org/v3/index.json
-
-    

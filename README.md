@@ -1,7 +1,6 @@
 [![Build Status](https://dev.azure.com/Protacon/Protacon.RxMq/_apis/build/status/by-pinja.Protacon.RxMq?branchName=refs%2Fpull%2F32%2Fmerge)](https://dev.azure.com/Protacon/Protacon.RxMq/_build/latest?definitionId=19&branchName=refs%2Fpull%2F32%2Fmerge)
 [![Nuget](https://img.shields.io/nuget/dt/Protacon.RxMq.Abstractions.svg)](https://www.nuget.org/packages/Protacon.RxMq.Abstractions/)
 [![Nuget](https://img.shields.io/nuget/dt/Protacon.RxMq.AzureServiceBus.svg)](https://www.nuget.org/packages/Protacon.RxMq.AzureServiceBus/)
-[![Nuget](https://img.shields.io/nuget/dt/Protacon.RxMq.AzureServiceBusLegacy.svg)](https://www.nuget.org/packages/Protacon.RxMq.AzureServiceBusLegacy/)
 
 # RxMq
 
@@ -41,7 +40,7 @@ subscriber.Messages<TestMessage>().Subscribe(message => Console.WriteLine(x.Exam
 
 Abstraction over Azure Service Bus.
 
-Contains modern .NET Core version and legacy (4.5.2, 4.7.2, 4.8) version with full framework.
+Contains modern .NET Core version and legacy (4.8) version with full framework.
 
 ## Configuring
 
@@ -52,7 +51,7 @@ Configure `AzureQueueMqSettings`, there are configuration methods which can be o
 
 ## Developing
 
-Requires NET core 2.x. and .NET Framework SDK 4.5.2, 4.7.2 and 4.8
+Requires NET core 2.x. and .NET Framework SDK 4.8
 
 Setting up test environment
 

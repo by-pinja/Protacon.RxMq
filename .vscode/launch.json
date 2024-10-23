@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Protacon.RxMq.ConsoleExample/bin/Debug/netcoreapp3.1</Protacon.RxMq.ConsoleExample.dll",
+            "program": "${workspaceFolder}/Protacon.RxMq.ConsoleExample/bin/Debug/net8.0</Protacon.RxMq.ConsoleExample.dll",
             "args": [],
             "cwd": "${workspaceFolder}/Protacon.RxMq.ConsoleExample/",
             "console": "internalConsole",
